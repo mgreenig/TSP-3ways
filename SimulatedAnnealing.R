@@ -76,6 +76,6 @@ nodes <- readNodeData('data/berlin52.tsp')
 
 distanceMatrix <- as.matrix(dist(nodes))
 
-annealing_results <- runAnnealing(nodes, distanceMatrix, preferNeighbors = F)
+results <- runAnnealing(nodes, distanceMatrix, preferNeighbors = F)
 
-plotTour(nodes, annealing_results$best_tour)
+plotTour(nodes, results$best_tour)

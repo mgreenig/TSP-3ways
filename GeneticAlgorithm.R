@@ -65,4 +65,7 @@ nodes <- readNodeData('data/berlin52.tsp')
 
 distanceMatrix <- as.matrix(dist(nodes))
 
-best_tour <- runEvolution(nodes, distanceMatrix, population = 2000, mutation_rate = 0.2)
+results <- runEvolution(nodes, distanceMatrix, population = 2000, mutation_rate = 0.2)
+
+plotTour(nodes, results$best_tour)
+
