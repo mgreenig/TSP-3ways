@@ -2,23 +2,27 @@ library(Rcpp)
 source('TSPfunctions.R')
 sourceCpp('Updates.cpp')
 
-initialRing <- function(n, x_scale, y_scale, x_bias, y_bias){
+# function to get the initial path 
+initialPath <- function(n, x_scale, y_scale, x_bias, y_bias){
   matrix(c(x_scale * cos(2 * (1:n) * pi / n) + x_bias,
            y_scale * sin(2 * (1:n) * pi / n) + y_bias),
            n, 2)
 }
 
-plotRing <- function(nodes, ring){
-  ring <- rbind(ring, ring[1,])
+# plot a path overlayed over the nodes
+plotPath <- function(nodes, path){
+  path <- rbind(path, path[1,])
   plot(nodes[,1], nodes[,2], cex = 0.5)
-  lines(ring[,1], ring[,2])
+  lines(path[,1], path[,2])
 }
 
-getK <- function(i, amp = 2, scale = 10){
-  amp * (1 / (1 + exp(i / scale)))
+# get a value of K for the given iteration
+getK <- function(i, scale = 10){
+  1 / exp(i / scale)
 }
 
-runElasticNet <- function(nodes, distMat, n_iterations = 50, alpha = 1, beta = 2){
+# run the elastic net for a set of nodes
+runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 2, plot = T){
   
   # save mean and sd of columns
   colmeans <- apply(nodes, 2, mean)
@@ -27,19 +31,21 @@ runElasticNet <- function(nodes, distMat, n_iterations = 50, alpha = 1, beta = 2
   # scale node coordinates to prevent numerical overflow
   nodes <- scale(nodes)
   
-  # initialise ring
-  ring <- initialRing(nrow(nodes) * 2, 
+  # initialise path as a ellipse
+  ring <- initialPath(nrow(nodes) * 2, 
                       sd(nodes[,1]) / 2, 
                       sd(nodes[,2]) / 2, 
                       mean(nodes[,1]), 
                       mean(nodes[,2]))
   
   for(i in 1:n_iterations){
-    plotRing(nodes, ring)
+    if(plot){
+      plotPath(nodes, ring)
+      Sys.sleep(1)
+    }
     weights <- weightUpdate(nodes, ring, getK(i))
     delta_y <- yUpdate(nodes, ring, weights, getK(i), alpha, beta)
     ring <- ring + delta_y
-    Sys.sleep(2)
   }
   
   ring <- apply(ring, 1, function(row) row + colmeans)
@@ -51,6 +57,5 @@ runElasticNet <- function(nodes, distMat, n_iterations = 50, alpha = 1, beta = 2
 
 nodes <- readNodeData('data/berlin52.tsp')
 
-distanceMatrix <- as.matrix(dist(nodes))
+best_tour <- runElasticNet(nodes)
 
-best_tour <- runElasticNet(nodes, distanceMatrix)

@@ -27,9 +27,13 @@ insertionMutation <- function(tour){
   return(mutated)
 }
 
-runEvolution <- function(nodes, distMat, population = 1000, 
-                         mutation_rate = 0.2, n_iterations = 5000, 
-                         state = 123){
+runEvolution <- function(nodes, distMat, population = 2000, 
+                         mutation_rate = 0.2, n_iterations = 1000, 
+                         state = 123, plot = T, n_checkpoints = 100){
+  
+  if(plot){
+    checkpoints <- unique(round(seq(1, population, length.out = n_checkpoints)))
+  }
   
   set.seed(state)
   n_nodes <- nrow(nodes)
@@ -41,6 +45,11 @@ runEvolution <- function(nodes, distMat, population = 1000,
   }
   
   for(i in 1:n_iterations){
+    if(plot & i %in% checkpoints){
+      distances <- apply(tours, 1, getTourDistance, d = distMat)
+      best_tour <- tours[which.min(distances),]
+      plotTour(nodes, best_tour)
+    }
     tours <- selectTours(tours, distMat)
     crossover_order <- sample(nrow(tours))
     # sections to swap in each pair of tours
@@ -65,7 +74,7 @@ nodes <- readNodeData('data/berlin52.tsp')
 
 distanceMatrix <- as.matrix(dist(nodes))
 
-results <- runEvolution(nodes, distanceMatrix, population = 2000, mutation_rate = 0.2)
+results <- runEvolution(nodes, distanceMatrix)
 
 plotTour(nodes, results$best_tour)
 
