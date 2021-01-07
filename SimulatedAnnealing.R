@@ -43,7 +43,7 @@ runAnnealing <- function(nodes, distMat, n_iterations = 50000,
   # initialise vectors for tracking probabilities and distances
   probs <- numeric(length = n_iterations)
   distances <- numeric(length = n_iterations)
-  # getCandidates function uses either adaptive selection or random sampling
+  # getCandidates function uses either the custom function or random sampling
   if(preferNeighbors){
     getCandidates <- function(n) selectCandidates(n, s1 = s1, s2 = s2)
   } else {
