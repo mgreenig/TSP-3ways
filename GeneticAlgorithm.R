@@ -78,3 +78,7 @@ results <- runEvolution(nodes, distanceMatrix)
 
 plotTour(nodes, results$best_tour)
 
+best_tour_distance <- round(getTourDistance(distanceMatrix, results$best_tour), 2)
+
+print(paste('Final tour distance:', best_tour_distance))
+

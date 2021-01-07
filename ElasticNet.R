@@ -13,7 +13,7 @@ initialPath <- function(n, x_scale, y_scale, x_bias, y_bias){
 plotPath <- function(nodes, path){
   path <- rbind(path, path[1,])
   plot(nodes[,1], nodes[,2], cex = 0.5)
-  lines(path[,1], path[,2])
+  lines(path[,1], path[,2], col = 'red', cex = 0.5)
 }
 
 # get a value of K for the given iteration
@@ -28,7 +28,7 @@ runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 2, plot = 
   colmeans <- apply(nodes, 2, mean)
   colsds <- apply(nodes, 2, sd)
   
-  # scale node coordinates to prevent numerical overflow
+  # scale node coordinates to prevent numerical errors
   nodes <- scale(nodes)
   
   # initialise path as a ellipse
@@ -48,8 +48,8 @@ runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 2, plot = 
     ring <- ring + delta_y
   }
   
-  ring <- apply(ring, 1, function(row) row + colmeans)
-  ring <- apply(ring, 1, function(row) row + colsds)
+  ring <- t(apply(ring, 1, function(row) row * colsds))
+  ring <- t(apply(ring, 1, function(row) row + colmeans))
     
   return(ring)
   
@@ -57,5 +57,9 @@ runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 2, plot = 
 
 nodes <- readNodeData('data/berlin52.tsp')
 
-best_tour <- runElasticNet(nodes)
+best_tour <- runElasticNet(nodes, plot = F)
+node_distances <- as.matrix(dist(best_tour))
+best_tour_distance <- round(getTourDistance(node_distances, 1:nrow(best_tour)), 2)
+
+print(paste('Final tour distance:', best_tour_distance))
 

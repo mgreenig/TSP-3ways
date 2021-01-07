@@ -92,3 +92,9 @@ results <- runAnnealing(nodes, distanceMatrix, preferNeighbors = F)
 results2 <- runAnnealing(nodes, distanceMatrix, preferNeighbors = T)
 
 plotTour(nodes, results$best_tour)
+
+# get best tour from the two tours
+best_tour <- c(results, results2)[which.min(c(results$best_distance, results2$best_distance))]
+
+print(paste('Final tour distance:', best_tour$probs))
+

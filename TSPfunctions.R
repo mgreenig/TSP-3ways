@@ -1,17 +1,5 @@
 library(Rcpp)
 
-# function for selecting candidate nodes to swap
-selectCandidates <- function(n_nodes, s1, s2){
-  # continuity correction for beta distribution, to sample a distance between points
-  distance <- ceiling(n_nodes * rbeta(1, s1, s2))
-  # number of possible pairs of nodes with that distance
-  possible_pairs <- n_nodes - distance
-  # sample from the possible nodes
-  candidate1 <- sample(possible_pairs, 1)
-  candidate2 <- candidate1 + distance
-  return(c(candidate1, candidate2))
-}
-
 # function for reading in a TSP data set
 readNodeData <- function(filepath){
   
@@ -48,6 +36,7 @@ plotTour <- function(nodes, tour){
   
   for(i in 1:(length(tour)-1)){
     lines(c(nodes[tour[i],1], nodes[tour[i+1],1]),
-          c(nodes[tour[i],2], nodes[tour[i+1],2]))
+          c(nodes[tour[i],2], nodes[tour[i+1],2]), 
+          col = 'red')
   }
 }
