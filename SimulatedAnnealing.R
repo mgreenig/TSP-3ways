@@ -84,17 +84,33 @@ plotTemp <- function(iterations, tempFunc){
   curve(tempFunc, 1, iterations)
 }
 
-nodes <- readNodeData('data/berlin52.tsp')
+# berlin52 data 
+berlin52 <- readNodeData('data/berlin52.tsp')
+b52_opt_tour <- readLines('data/berlin52.opt.tour')
+b52_opt_tour <- as.integer(b52_opt_tour)
+b52_opt_tour <- b52_opt_tour[!is.na(b52_opt_tour) & b52_opt_tour != -1]
 
-distanceMatrix <- as.matrix(dist(nodes))
+b52_distanceMatrix <- as.matrix(dist(berlin52))
 
-results <- runAnnealing(nodes, distanceMatrix, preferNeighbors = F)
-results2 <- runAnnealing(nodes, distanceMatrix, preferNeighbors = T)
+b52_results <- runAnnealing(berlin52, b52_distanceMatrix)
 
-plotTour(nodes, results$best_tour)
+plotTour(berlin52, b52_results$best_tour)
 
-# get best tour from the two tours
-best_tour <- c(results, results2)[which.min(c(results$best_distance, results2$best_distance))]
+b52_comparison <- compareOptimal(berlin52, b52_distanceMatrix, 
+                                 b52_results$best_tour, b52_opt_tour)
 
-print(paste('Final tour distance:', best_tour$probs))
+# pr76 data
+pr76 <- readNodeData('data/pr76.tsp')
+pr76_opt_tour <- readLines('data/pr76.opt.tour')
+pr76_opt_tour <- as.integer(pr76_opt_tour)
+pr76_opt_tour <- pr76_opt_tour[!is.na(pr76_opt_tour) & pr76_opt_tour != -1]
+
+pr76_distanceMatrix <- as.matrix(dist(pr76))
+
+pr76_results <- runAnnealing(pr76, pr76_distanceMatrix)
+
+plotTour(pr76, pr76_results$best_tour)
+
+pr76_comparison <- compareOptimal(pr76, pr76_distanceMatrix, 
+                                  pr76_results$best_tour, pr76_opt_tour)
 

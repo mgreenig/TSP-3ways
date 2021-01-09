@@ -18,7 +18,7 @@ selectTours <- function(tours, distanceMatrix, proportion = 0.5, state = 123){
   return(new_tours)
 }
 
-# function for mutating individual tours
+# function for mutating individual tours via insertion
 insertionMutation <- function(tour){
   i <- sample(length(tour), 2)
   node_to_move <- tour[i[1]]
@@ -27,7 +27,15 @@ insertionMutation <- function(tour){
   return(mutated)
 }
 
-runEvolution <- function(nodes, distMat, population = 2000, 
+# function for mutating individual tours via inversion
+simpleInversionMutation <- function(tour){
+  i <- sample(length(tour), 2)
+  mutated <- tour
+  mutated[i[1]:i[2]] <- rev(tour[i[1]:i[2]])
+  return(mutated)
+}
+
+runEvolution <- function(nodes, distMat, mutate_func, population = 2000, 
                          mutation_rate = 0.2, n_iterations = 1000, 
                          state = 123, plot = T, n_checkpoints = 100){
   
@@ -56,9 +64,9 @@ runEvolution <- function(nodes, distMat, population = 2000,
     swap_sections <- t(replicate(floor(nrow(tours) / 2), sample(ncol(tours), 2)))
     offspring <- runCrossover(tours, swap_sections, crossover_order)
     tours <- rbind(tours, offspring)
-    # add mutations with specified frequency
+    # add insertion and inversion mutations with specified frequency
     mutate <- runif(nrow(tours)) < mutation_rate
-    tours[mutate,] <- t(apply(tours[mutate,], 1, insertionMutation))
+    tours[mutate,] <- t(apply(tours[mutate,], 1, mutate_func))
   }
   
   distances <- apply(tours, 1, getTourDistance, d = distMat)
@@ -70,15 +78,42 @@ runEvolution <- function(nodes, distMat, population = 2000,
   
 }
 
-nodes <- readNodeData('data/berlin52.tsp')
+# berlin52 data 
+berlin52 <- readNodeData('data/berlin52.tsp')
+b52_opt_tour <- readLines('data/berlin52.opt.tour')
+b52_opt_tour <- as.integer(b52_opt_tour)
+b52_opt_tour <- b52_opt_tour[!is.na(b52_opt_tour) & b52_opt_tour != -1]
 
-distanceMatrix <- as.matrix(dist(nodes))
+b52_distanceMatrix <- as.matrix(dist(berlin52))
 
-results <- runEvolution(nodes, distanceMatrix)
+b52_results_ins <- runEvolution(berlin52, b52_distanceMatrix, 
+                                mutate_func = insertionMutation)
+b52_results_inv <- runEvolution(berlin52, b52_distanceMatrix, 
+                                mutate_func = simpleInversionMutation)
+b52_results <- c(b52_results_ins, b52_results_inv)[which.min(c(b52_results_ins$best_distance, 
+                                                               b52_results_inv$best_distance))]
 
-plotTour(nodes, results$best_tour)
+plotTour(berlin52, b52_results$best_tour)
 
-best_tour_distance <- round(getTourDistance(distanceMatrix, results$best_tour), 2)
+b52_comparison <- compareOptimal(berlin52, b52_distanceMatrix, 
+                                 b52_results$best_tour, b52_opt_tour)
 
-print(paste('Final tour distance:', best_tour_distance))
+# pr76 data
+pr76 <- readNodeData('data/pr76.tsp')
+pr76_opt_tour <- readLines('data/pr76.opt.tour')
+pr76_opt_tour <- as.integer(pr76_opt_tour)
+pr76_opt_tour <- pr76_opt_tour[!is.na(pr76_opt_tour) & pr76_opt_tour != -1]
 
+pr76_distanceMatrix <- as.matrix(dist(pr76))
+
+pr76_results_ins <- runEvolution(pr76, pr76_distanceMatrix, 
+                                 mutate_func = insertionMutation)
+pr76_results_inv <- runEvolution(pr76, pr76_distanceMatrix, 
+                                 mutate_func = simpleInversionMutation)
+pr76_results <- c(pr76_results_ins, pr76_results_inv)[which.min(c(pr76_results_ins$best_distance, 
+                                                                  pr76_results_inv$best_distance))]
+
+plotTour(pr76, pr76_results$best_tour)
+
+pr76_comparison <- compareOptimal(pr76, pr76_distanceMatrix, 
+                                  pr76_results$best_tour, pr76_opt_tour)
