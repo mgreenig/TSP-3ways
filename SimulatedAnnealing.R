@@ -24,8 +24,8 @@ getProb <- function(old_dist, new_dist, temp){
 
 
 # function for running simulated annealing
-runAnnealing <- function(nodes, distMat, n_iterations = 50000, 
-                         state = 123, tempAmplitude = 4000, tempScale = 3000,
+runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale, 
+                         n_iterations = 50000, state = 123,
                          preferNeighbors = T, s1 = 2, s2 = 12,
                          plot = T, n_checkpoints = 100){
   
@@ -51,9 +51,10 @@ runAnnealing <- function(nodes, distMat, n_iterations = 50000,
   }
   # iterate the annealing process
   for(i in 1:n_iterations){
-    if(plot & i %in% checkpoints){
-      plotTour(nodes, tour)
-      Sys.sleep(1)
+    if(plot){
+      if(i %in% checkpoints){
+        plotTour(nodes, tour)
+      }
     }
     temp <- getTemp(i, amp = tempAmplitude, loc = 0, scale = tempScale)
     # get candidates, drawn randomly depending on the current iteration
@@ -86,16 +87,39 @@ plotTemp <- function(iterations, tempFunc, amp, loc, scale){
   curve(newTempFunc, 1, iterations)
 }
 
+# function for searching for optimal values for amplitude and scale
+gridSearch <- function(amplitudes, scales, nodes, distMat){
+  
+  for(amp in amplitudes){
+    for(scale in scales){
+      results_random <- runAnnealing(nodes, distMat, tempAmplitude = amp,
+                                     tempScale = scale, plot = F)
+      results_prefN <- runAnnealing(nodes, distMat, tempAmplitude = amp,
+                                    tempScale = scale, preferNeighbors = T, plot = F)
+      best_result <- which.min(c(results_random$best_distance,
+                                 results_prefN$best_distance))
+      if(best_result == 1){ best_results <- results_random } else { best_results <- results_prefN }
+      if(best_results$best_distance < best_dist){
+        optimal_params <- list('amp' = amp, 'scale' = scale, 
+                               'prefN' = if(best_result == 1) TRUE else FALSE)
+        optimal <- best_results
+        best_dist <- best_results$best_distance
+      } 
+    }
+  }
+  
+  return(list('results' = optimal, 'params' = optimal_params))
+}
+
+amplitudes <- seq(2000, 20000, by = 2000)
+scales <- seq(2000, 20000, by = 2000)
+
 # data on 52 locations in berlin
 b52 <- readNodeData('data/berlin52.tsp', 'data/berlin52.opt.tour')
 b52_distanceMatrix <- as.matrix(dist(b52$nodes))
 
-# compare models with random swap and neighbor preference swap
-b52_results_random <- runAnnealing(b52$nodes, b52_distanceMatrix)
-b52_results_prefN <- runAnnealing(b52$nodes, b52_distanceMatrix, preferNeighbors = T)
-b52_best_result <- which.min(c(b52_results_random$best_distance,
-                               b52_results_prefN$best_distance))
-b52_results <- c(b52_results_random, b52_results_prefN)[b52_best_result]
+# run grid search
+b52_results <- gridSearch(amplitudes, scales, b52$nodes, b52_distanceMatrix)
 
 # compare to optimal tour
 b52_comparison <- compareOptimal(b52$nodes, b52_distanceMatrix, 
@@ -105,12 +129,11 @@ b52_comparison <- compareOptimal(b52$nodes, b52_distanceMatrix,
 pr76 <- readNodeData('data/pr76.tsp', 'data/pr76.opt.tour')
 pr76_distanceMatrix <- as.matrix(dist(pr76$nodes))
 
-# compare models with and without biased swap 
-pr76_results_random <- runAnnealing(pr76$nodes, pr76_distanceMatrix)
-pr76_results_prefN <- runAnnealing(pr76$nodes, pr76_distanceMatrix, preferNeighbors = T)
-pr76_best_result <- which.min(c(pr76_results_random$best_distance,
-                                pr76_results_prefN$best_distance))
-pr76_results <- c(pr76_results_random, pr76_results_prefN)[pr76_best_result]
+# run grid search
+pr76_results <- gridSearch(amplitudes, scales, pr76$nodes, pr76_distanceMatrix)
+
+# plot best tour
+plotTour(pr76$nodes, pr76_results$results$best_tour)
 
 # compare to optimal tour
 pr76_comparison <- compareOptimal(pr76$nodes, pr76_distanceMatrix, 
@@ -120,14 +143,13 @@ pr76_comparison <- compareOptimal(pr76$nodes, pr76_distanceMatrix,
 att48 <- readNodeData('data/att48.tsp', 'data/att48.opt.tour')
 att48_distanceMatrix <- as.matrix(dist(att48$nodes))
 
-# compare models with and without biased swap 
-att48_results_random <- runAnnealing(att48$nodes, att48_distanceMatrix)
-att48_results_prefN <- runAnnealing(att48$nodes, att48_distanceMatrix, preferNeighbors = T)
-att48_best_result <- which.min(c(att48_results_random$best_distance,
-                                 att48_results_prefN$best_distance))
-att48_results <- c(att48_results_random, att48_results_prefN)[att48_best_result]
+# run grid search
+att48_results <- gridSearch(amplitudes, scales, att48$nodes, att48_distanceMatrix)
+
+# plot best tour
+plotTour(att48$nodes, att48_results$results$best_tour)
 
 # compare to optimal tour
 att48_comparison <- compareOptimal(att48$nodes, att48_distanceMatrix, 
-                                   att48_results$best_tour, att48$opt_tour)
+                                   att48_results$results$best_tour, att48$opt_tour)
 
