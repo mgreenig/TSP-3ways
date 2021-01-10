@@ -22,7 +22,7 @@ getK <- function(i, scale = 10){
 }
 
 # run the elastic net for a set of nodes
-runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 1, plot = T){
+runElasticNet <- function(nodes, Mfactor = 1.5, n_iterations = 50, alpha = 1, beta = 1, plot = T){
   
   # save mean and sd of columns
   colmeans <- apply(nodes, 2, mean)
@@ -32,7 +32,7 @@ runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 1, plot = 
   nodes <- scale(nodes)
   
   # initialise path as a ellipse
-  ring <- initialPath(nrow(nodes) * 1.5, 
+  ring <- initialPath(ceiling(nrow(nodes) * Mfactor), 
                       sd(nodes[,1]) / 2, 
                       sd(nodes[,2]) / 2, 
                       mean(nodes[,1]), 
@@ -55,36 +55,39 @@ runElasticNet <- function(nodes, n_iterations = 50, alpha = 1, beta = 1, plot = 
   
 }
 
-# berlin52 data 
-berlin52 <- readNodeData('data/berlin52.tsp')
-b52_opt_tour <- readLines('data/berlin52.opt.tour')
-b52_opt_tour <- as.integer(b52_opt_tour)
-b52_opt_tour <- b52_opt_tour[!is.na(b52_opt_tour) & b52_opt_tour != -1]
+# data on 52 locations in berlin
+b52 <- readNodeData('data/berlin52.tsp', 'data/berlin52.opt.tour')
+b52_distanceMatrix <- as.matrix(dist(b52$nodes))
 
-b52_distanceMatrix <- as.matrix(dist(berlin52))
-
-b52_results <- runElasticNet(berlin52)
-
-plotTour(berlin52, b52_results$best_tour)
+# run elastic net
+b52_results <- runElasticNet(b52$nodes)
 
 print(paste('Final tour distance:', 
             round(getTourDistance(as.matrix(dist(b52_results)), 1:nrow(b52_results)))))
 print(paste('Optimal tour distance:', 
-            round(getTourDistance(b52_distanceMatrix, b52_opt_tour))))
+            round(getTourDistance(b52_distanceMatrix, b52$opt_tour))))
 
-# pr76 data
-pr76 <- readNodeData('data/pr76.tsp')
-pr76_opt_tour <- readLines('data/pr76.opt.tour')
-pr76_opt_tour <- as.integer(pr76_opt_tour)
-pr76_opt_tour <- pr76_opt_tour[!is.na(pr76_opt_tour) & pr76_opt_tour != -1]
+# data on 76 cities in Germany
+pr76 <- readNodeData('data/pr76.tsp', 'data/pr76.opt.tour')
+pr76_distanceMatrix <- as.matrix(dist(pr76$nodes))
 
-pr76_distanceMatrix <- as.matrix(dist(pr76))
-
-pr76_results <- runElasticNet(pr76, beta = 1)
-
-plotTour(pr76, pr76_results$best_tour)
+# run elastic net
+pr76_results <- runElasticNet(pr76$nodes)
 
 print(paste('Final tour distance:', 
             round(getTourDistance(as.matrix(dist(pr76_results)), 1:nrow(pr76_results)))))
 print(paste('Optimal tour distance:', 
-            round(getTourDistance(pr76_distanceMatrix, pr76_opt_tour))))
+            round(getTourDistance(pr76_distanceMatrix, pr76$opt_tour))))
+
+# data on 48 state capitals in US
+att48 <- readNodeData('data/att48.tsp', 'data/att48.opt.tour')
+att48_distanceMatrix <- as.matrix(dist(att48$nodes))
+
+# run elastic net
+att48_results <- runElasticNet(att48$nodes)
+
+print(paste('Final tour distance:', 
+            round(getTourDistance(as.matrix(dist(att48_results)), 1:nrow(att48_results)))))
+print(paste('Optimal tour distance:', 
+            round(getTourDistance(att48_distanceMatrix, att48$opt_tour))))
+
