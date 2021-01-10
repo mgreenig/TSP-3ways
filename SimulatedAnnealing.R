@@ -106,10 +106,8 @@ pr76 <- readNodeData('data/pr76.tsp', 'data/pr76.opt.tour')
 pr76_distanceMatrix <- as.matrix(dist(pr76$nodes))
 
 # compare models with and without biased swap 
-pr76_results_random <- runAnnealing(pr76$nodes, pr76_distanceMatrix, 
-                                    tempScale = 5000, tempAmplitude = 6000)
-pr76_results_prefN <- runAnnealing(pr76$nodes, pr76_distanceMatrix, 
-                                   tempScale = 5000, preferNeighbors = T)
+pr76_results_random <- runAnnealing(pr76$nodes, pr76_distanceMatrix)
+pr76_results_prefN <- runAnnealing(pr76$nodes, pr76_distanceMatrix, preferNeighbors = T)
 pr76_best_result <- which.min(c(pr76_results_random$best_distance,
                                 pr76_results_prefN$best_distance))
 pr76_results <- c(pr76_results_random, pr76_results_prefN)[pr76_best_result]
@@ -124,7 +122,7 @@ att48_distanceMatrix <- as.matrix(dist(att48$nodes))
 
 # compare models with and without biased swap 
 att48_results_random <- runAnnealing(att48$nodes, att48_distanceMatrix)
-att48_results_prefN <- runAnnealing(att48$nodes, att48_distanceMatrix)
+att48_results_prefN <- runAnnealing(att48$nodes, att48_distanceMatrix, preferNeighbors = T)
 att48_best_result <- which.min(c(att48_results_random$best_distance,
                                  att48_results_prefN$best_distance))
 att48_results <- c(att48_results_random, att48_results_prefN)[att48_best_result]
