@@ -1,8 +1,13 @@
+library(ggplot2)
+library(pheatmap)
+library(RColorBrewer)
+library(dichromat)
+
 source('TSPfunctions.R')
 
 # get the temperature for iteration x
-getTemp <- function(x, amp, loc, scale){
-  amp * (1 / (1 + exp((x - loc) / scale)))
+getTemp <- function(x, amp, scale){
+  amp * (1 / (1 + exp(x / scale)))
 }
 
 # function for selecting candidate nodes to swap
@@ -26,7 +31,6 @@ getProb <- function(old_dist, new_dist, temp){
 # function for running simulated annealing
 runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale, 
                          n_iterations = 50000, state = 123,
-                         preferNeighbors = T, s1 = 2, s2 = 12,
                          plot = T, n_checkpoints = 100){
   
   if(plot){
@@ -37,18 +41,12 @@ runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale,
   n_nodes <- nrow(nodes)
   # start with a random tour
   tour <- sample(n_nodes)
-  tour_dist <- getTourDistance(distanceMatrix, tour)
+  tour_dist <- getTourDistance(distMat, tour)
   best_tour <- tour
   best_distance <- Inf
   # initialise vectors for tracking probabilities and distances
   probs <- numeric(length = n_iterations)
   distances <- numeric(length = n_iterations)
-  # getCandidates function uses either the custom function or random sampling
-  if(preferNeighbors){
-    getCandidates <- function(n) selectCandidates(n, s1 = s1, s2 = s2)
-  } else {
-    getCandidates <- function(n) sample(n, size = 2, replace = F)
-  }
   # iterate the annealing process
   for(i in 1:n_iterations){
     if(plot){
@@ -56,13 +54,13 @@ runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale,
         plotTour(nodes, tour)
       }
     }
-    temp <- getTemp(i, amp = tempAmplitude, loc = 0, scale = tempScale)
+    temp <- getTemp(i, amp = tempAmplitude, scale = tempScale)
     # get candidates, drawn randomly depending on the current iteration
-    swapped <- getCandidates(n_nodes)
+    swapped <- sample(n_nodes, size = 2, replace = F)
     candidate_tour <- tour
     # swap the selected points in the candidate tour
     candidate_tour[swapped[1]:swapped[2]]<- rev(tour[swapped[1]:swapped[2]])
-    candidate_dist <- getTourDistance(distanceMatrix, candidate_tour)
+    candidate_dist <- getTourDistance(distMat, candidate_tour)
     prob <- getProb(tour_dist, candidate_dist, temp)
     probs[i] <- prob
     if(runif(1) < prob){
@@ -82,74 +80,118 @@ runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale,
 }
 
 # function for plotting temperature change over iterations
-plotTemp <- function(iterations, tempFunc, amp, loc, scale){
-  newTempFunc <- function(x) tempFunc(x, amp, loc, scale)
-  curve(newTempFunc, 1, iterations)
+plotTemp <- function(iterations, tempFunc, amp, scale){
+  newTempFunc <- function(x) tempFunc(x, amp, scale)
+  temp_plot <- ggplot(data.frame('Iteration' = 1:iterations), aes(x = Iteration)) +
+    labs(x = '\nIteration', y = 'Temperature\n') +
+    stat_function(fun = newTempFunc) + 
+    theme(text = element_text(size = 26),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.ticks = element_blank(),
+          axis.line = element_line(color = 'black'))
+  return(temp_plot)
 }
 
 # function for searching for optimal values for amplitude and scale
-gridSearch <- function(amplitudes, scales, nodes, distMat){
+gridSearch <- function(nodes, distMat, amplitudes, scales, n_iterations = 50000){
   
+  best_dist <- Inf
+  heatmap <- matrix(Inf, nrow = length(amplitudes), ncol = length(scales),
+                    dimnames = list(amplitudes, scales))
   for(amp in amplitudes){
     for(scale in scales){
-      results_random <- runAnnealing(nodes, distMat, tempAmplitude = amp,
+      results <- runAnnealing(nodes, distMat, tempAmplitude = amp,
+                                     n_iterations = n_iterations,
                                      tempScale = scale, plot = F)
-      results_prefN <- runAnnealing(nodes, distMat, tempAmplitude = amp,
-                                    tempScale = scale, preferNeighbors = T, plot = F)
-      best_result <- which.min(c(results_random$best_distance,
-                                 results_prefN$best_distance))
-      if(best_result == 1){ best_results <- results_random } else { best_results <- results_prefN }
-      if(best_results$best_distance < best_dist){
-        optimal_params <- list('amp' = amp, 'scale' = scale, 
-                               'prefN' = if(best_result == 1) TRUE else FALSE)
-        optimal <- best_results
-        best_dist <- best_results$best_distance
+      heatmap[rownames(heatmap) == amp, colnames(heatmap) == scale] <- results$best_distance
+      if(results$best_distance < best_dist){
+        optimal_params <- list('amp' = amp, 'scale' = scale)
+        optimal <- results
+        best_dist <- results$best_distance
       } 
     }
   }
   
-  return(list('results' = optimal, 'params' = optimal_params))
+  return(list('results' = optimal, 'params' = optimal_params, 'heatmap' = heatmap))
 }
 
-amplitudes <- seq(2000, 20000, by = 2000)
-scales <- seq(2000, 20000, by = 2000)
+# function for running grid search and making figures
+runPipeline <- function(dataset_name, node_filepath, opt_tour_filepath, 
+                        amplitudes, scales, n_iterations){
+  
+  data <- readNodeData(node_filepath, opt_tour_filepath)
+  distanceMatrix <- as.matrix(dist(data$nodes))
+  
+  # run elastic net
+  results <- gridSearch(data$nodes, distanceMatrix, 
+                        amplitudes, scales, n_iterations = n_iterations)
+  
+  # time the run
+  pt <- proc.time()
+  runAnnealing(data$nodes, distanceMatrix, results$params$amp, results$params$scale)
+  time <- proc.time() - pt
+  writeLines(paste('Time elapsed finding best path:', round(time['elapsed'], 3)))
+    
+  # plot tour
+  tourplot <- plotTour(data$nodes, results$results$best_tour)
+  ggsave(paste('figures/SimulatedAnnealing/', dataset_name, '_tour.png', sep = ''), tourplot)
+  
+  # plot optimal tour
+  tourplot <- plotTour(data$nodes, data$opt_tour)
+  ggsave(paste('figures/', dataset_name, '_opt_tour.png', sep = ''), tourplot)
+  
+  # plot temperature
+  tempplot <- plotTemp(50000, getTemp, results$params$amp, results$params$scale)
+  tempplot <- tempplot + scale_x_continuous(labels = c(0, paste(1:(n_iterations / 10000), '0k', sep = '')))
+  ggsave(paste('figures/SimulatedAnnealing/', dataset_name, '_temperature.png', sep = ''))
+  
+  # plot distances 
+  distplot <- plotDistances(results$results$distances)
+  distplot <- distplot + scale_x_continuous(labels = c(0, paste(1:(n_iterations / 10000), '0k', sep = '')))
+  ggsave(paste('figures/SimulatedAnnealing/', dataset_name, '_distance.png', sep = ''), distplot)
+  
+  # normalise heatmap
+  results$heatmap <- ((results$heatmap / getTourDistance(distanceMatrix, data$opt_tour)) - 1) * 100
+  # plot heatmap from grid search
+  heatmap <- pheatmap::pheatmap(results$heatmap, cluster_rows = F, 
+                                cluster_cols = F, angle_col = 0,
+                                color = colorRampPalette(rev(colorschemes$BluetoGreen.14))(100),
+                                filename = paste('figures/SimulatedAnnealing/', dataset_name, 
+                                                 '_gridsearch.png', sep = ''), 
+                                cellwidth = 30, cellheight = 30)
+  
+  writeLines(paste('Tours for the', dataset_name, 
+                   'data set completed, optimal model found using the following parameters:',                             '\nTemperature function amplitude:', results$params$amp,
+                   '\nTemperature function scale parameter:', results$params$scale,
+                   '\nRandom selection?', results$params$prefN))
+  
+  compareOptimal(data$nodes, distanceMatrix, 
+                 results$results$best_tour, data$opt_tour)
+  
+}
+
+amplitudes <- seq(1000, 10000, by = 1000)
+scales <- seq(1000, 10000, by = 1000)
+n_iterations <- 50000
 
 # data on 52 locations in berlin
-b52 <- readNodeData('data/berlin52.tsp', 'data/berlin52.opt.tour')
-b52_distanceMatrix <- as.matrix(dist(b52$nodes))
-
-# run grid search
-b52_results <- gridSearch(amplitudes, scales, b52$nodes, b52_distanceMatrix)
-
-# compare to optimal tour
-b52_comparison <- compareOptimal(b52$nodes, b52_distanceMatrix, 
-                                 b52_results$best_tour, b52$opt_tour)
+writeLines(paste('Loading b52 data set, running simulated annealing for', 
+                 n_iterations, 'iterations...'))
+runPipeline('b52', 'data/berlin52.tsp', 'data/berlin52.opt.tour',
+            amplitudes, scales, n_iterations)
 
 # data on 76 cities in Germany
-pr76 <- readNodeData('data/pr76.tsp', 'data/pr76.opt.tour')
-pr76_distanceMatrix <- as.matrix(dist(pr76$nodes))
-
-# run grid search
-pr76_results <- gridSearch(amplitudes, scales, pr76$nodes, pr76_distanceMatrix)
-
-# plot best tour
-plotTour(pr76$nodes, pr76_results$results$best_tour)
-
-# compare to optimal tour
-pr76_comparison <- compareOptimal(pr76$nodes, pr76_distanceMatrix, 
-                                  pr76_results$best_tour, pr76$opt_tour)
+writeLines(paste('Loading pr76 data set, running simulated annealing for', 
+                 n_iterations, 'iterations...'))
+runPipeline('pr76', 'data/pr76.tsp', 'data/pr76.opt.tour',
+            amplitudes, scales, n_iterations)
 
 # data on 48 state capitals in US
-att48 <- readNodeData('data/att48.tsp', 'data/att48.opt.tour')
-att48_distanceMatrix <- as.matrix(dist(att48$nodes))
+writeLines(paste('Loading att48 data set, running simulated annealing for', 
+                 n_iterations, 'iterations...'))
+runPipeline('att48', 'data/att48.tsp', 'data/att48.opt.tour',
+            amplitudes, scales, n_iterations)
 
-# run grid search
-att48_results <- gridSearch(amplitudes, scales, att48$nodes, att48_distanceMatrix)
-
-# plot best tour
-plotTour(att48$nodes, att48_results$results$best_tour)
-
-# compare to optimal tour
-att48_comparison <- compareOptimal(att48$nodes, att48_distanceMatrix, 
-                                   att48_results$results$best_tour, att48$opt_tour)
 
