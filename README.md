@@ -7,7 +7,7 @@ This repository contains code for three algorithms implemented to solve the TSP:
 
 Data can be found [here](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp/). The performance of the three algorithms was tested on three data sets, included in the `data/` directory: att48 (48 state capitals in the US), berlin52 (52 locations in Berlin), and pr76 (76 cities around the world).
 
-The reproduce the workflow, run the scripts from the command line: 
+The reproduce the analysis, run the scripts from the command line: 
 
 ```
 Rscript SimulatedAnnealing.R
