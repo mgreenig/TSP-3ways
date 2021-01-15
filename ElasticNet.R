@@ -35,7 +35,7 @@ plotK <- function(iterations, KFunc, scale){
 }
 
 # run the elastic net for a set of nodes
-runElasticNet <- function(nodes, Mfactor, n_iterations = 100, 
+runElasticNet <- function(nodes, Mfactor = 1.5, n_iterations = 100, 
                           alpha = 1, beta = 1, Kscale = 10, plot = T,
                           n_checkpoints = 10){
   

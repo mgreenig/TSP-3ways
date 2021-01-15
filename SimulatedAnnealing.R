@@ -49,7 +49,7 @@ runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale,
   distances <- numeric(length = n_iterations)
   # iterate the annealing process
   for(i in 1:n_iterations){
-    if(plot){
+    if(plot & interactive()){
       if(i %in% checkpoints){
         plotTour(nodes, tour)
       }
@@ -163,7 +163,8 @@ runPipeline <- function(dataset_name, node_filepath, opt_tour_filepath,
                                 cellwidth = 30, cellheight = 30)
   
   writeLines(paste('Tours for the', dataset_name, 
-                   'data set completed, optimal model found using the following parameters:',                             '\nTemperature function amplitude:', results$params$amp,
+                   'data set completed, optimal model found using the following parameters:',
+                   '\nTemperature function amplitude:', results$params$amp,
                    '\nTemperature function scale parameter:', results$params$scale,
                    '\nRandom selection?', results$params$prefN))
   
