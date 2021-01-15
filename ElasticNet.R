@@ -25,11 +25,12 @@ plotK <- function(iterations, KFunc, scale){
   K_plot <- ggplot(data.frame('Iteration' = 1:iterations), aes(x = Iteration)) +
     labs(x = '\nIteration', y = 'K\n') +
     stat_function(fun = newKFunc) + 
-    theme(text = element_text(size = 18),
+    theme(text = element_text(size = 26),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(),
-          axis.line = element_line(color = 'black'))
+          axis.line = element_line(color = 'black'),
+          axis.ticks = element_blank())
   return(K_plot)
 }
 
@@ -63,6 +64,7 @@ runElasticNet <- function(nodes, Mfactor, n_iterations = 100,
       if(i %in% checkpoints){
         idx <- which(checkpoints == i)
         paths[[idx]] <- plotElasticNet(nodes, ring)
+        if(interactive()) print(paths[[idx]])
       }
     }
     weights <- weightUpdate(nodes, ring, getK(i, scale = Kscale))
@@ -86,7 +88,7 @@ plotElasticNet <- function(nodes, path){
     geom_path(data = data.frame('c1' = path[,1],
                                 'c2' = path[,2]),
               aes(x = c1, c2), col = 'red') + 
-    theme(text = element_text(size = 18),
+    theme(text = element_text(size = 26),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(),
@@ -109,9 +111,6 @@ gridSearch <- function(nodes, Mfactors, betas, Kscales, n_iterations = 100){
         results <- runElasticNet(nodes, Mfactor = Mf, beta = b, Kscale = scale, 
                                  n_iterations = n_iterations)
         distance <- getTourDistance(as.matrix(dist(results$final_path)), 1:nrow(results$final_path))
-        if(is.na(distance)){
-          next
-        }
         current_distance <- heatmap[rownames(heatmap) == scale, colnames(heatmap) == b]
         if(distance < current_distance){
           heatmap[rownames(heatmap) == scale, colnames(heatmap) == b] <- distance
@@ -171,6 +170,12 @@ runPipeline <- function(dataset_name, node_filepath, opt_tour_filepath,
                                                  '_gridsearch.png', sep = ''), 
                                 cellwidth = 30, cellheight = 30)
   
+  writeLines(paste('Tours for the', dataset_name, 
+                   'data set completed, optimal model found using the following parameters:',
+                   '\nBeta:', results$params$beta,
+                   '\nK scale:', results$params$Kscale,
+                   '\nM factor', results$params$Mf))
+  
   writeLines(paste('Final tour distance, ', dataset_name, ': ', 
                    results$results$best_distance, sep = ''))
   writeLines(paste('Optimal tour distance, ', dataset_name, ': ', 
@@ -178,7 +183,7 @@ runPipeline <- function(dataset_name, node_filepath, opt_tour_filepath,
 }
 
 Mfactors <- c(1.5, 1.75, 2)
-betas <- c(1, 1.25, 1.5, 1.75, 2)
+betas <- c(0.5, 0.75, 1, 1.25, 1.5, 1.75, 2)
 Kscales <- seq(10, 20, 2)
 n_iterations <- 100
 
