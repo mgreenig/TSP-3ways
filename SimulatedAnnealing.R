@@ -10,18 +10,6 @@ getTemp <- function(x, amp, scale){
   amp * (1 / (1 + exp(x / scale)))
 }
 
-# function for selecting candidate nodes to swap
-selectCandidates <- function(n_nodes, s1, s2){
-  # continuity correction for beta distribution, to sample a distance between points
-  distance <- ceiling(n_nodes * rbeta(1, s1, s2))
-  # number of possible pairs of nodes with that distance
-  possible_pairs <- n_nodes - distance
-  # sample from the possible nodes
-  candidate1 <- sample(possible_pairs, 1)
-  candidate2 <- candidate1 + distance
-  return(c(candidate1, candidate2))
-}
-
 # get probability of accepting a new tour, given two distances and temperature
 getProb <- function(old_dist, new_dist, temp){
   min(1, exp((old_dist - new_dist) / temp))
