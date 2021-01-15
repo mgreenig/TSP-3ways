@@ -23,7 +23,7 @@ The scripts automatically save all relevant figures and a .txt file containing a
 
 If in RStudio, the progression of each algorithm can be visualised by running each function (`runAnnealing()`, `runEvolution()`, and `runElasticNet()`) with `plot = T`, e.g.
 
-``` {r}
+``` {R}
 source('ElasticNet.R')
 berlin52 <- readNodeData('data/berlin52.tsp', 'data/berlin52.opt.tour')
 results <- runElasticNet(berlin52$nodes, plot = T)
