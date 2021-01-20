@@ -62,7 +62,7 @@ runEvolution <- function(nodes, distMat, mutate_func, population = 2000,
       if(i %in% checkpoints){
         distances <- apply(tours, 1, getTourDistance, d = distMat)
         best_tour <- tours[which.min(distances),]
-        plotTour(nodes, best_tour)
+        print(plotTour(nodes, best_tour))
       }
     }
     if(track_distance){

@@ -39,7 +39,7 @@ runAnnealing <- function(nodes, distMat, tempAmplitude, tempScale,
   for(i in 1:n_iterations){
     if(plot & interactive()){
       if(i %in% checkpoints){
-        plotTour(nodes, tour)
+        print(plotTour(nodes, tour))
       }
     }
     temp <- getTemp(i, amp = tempAmplitude, scale = tempScale)

@@ -46,7 +46,7 @@ plotTour <- function(nodes, tour){
   tour_nodes <- nodes[tour,]
   tour_nodes <- rbind(tour_nodes, tour_nodes[1,])
   
-  ggplot(data.frame('c1' = nodes[,1], 'c2' = nodes[,2]), aes(x = c1, y = c2)) + 
+  tour_plot <- ggplot(data.frame('c1' = nodes[,1], 'c2' = nodes[,2]), aes(x = c1, y = c2)) + 
     geom_point(size = 2) + 
     geom_path(data = data.frame('c1' = tour_nodes[,1],
                                 'c2' = tour_nodes[,2]),
@@ -59,6 +59,8 @@ plotTour <- function(nodes, tour){
           axis.text = element_blank(),
           axis.ticks = element_blank(),
           axis.title = element_blank())
+  
+  return(tour_plot)
 }
 
 # function for comparing a tour to the optimal tour
