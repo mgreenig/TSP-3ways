@@ -5,7 +5,7 @@ This repository contains code (in R version 3.6.1) for three algorithms implemen
 - [Genetic algorithms](https://link.springer.com/article/10.1023/A:1006529012972)
 - [Elastic net](https://pubmed.ncbi.nlm.nih.gov/3561510/)
 
-Data can be found [here](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp/). The performance of the three algorithms was tested on three data sets, included in the `data/` directory: att48 (48 state capitals in the US), berlin52 (52 locations in Berlin), and pr76 (76 cities around the world).
+The performance of the three algorithms was tested on three data sets, included in the `data/` directory: att48 (48 state capitals in the US), berlin52 (52 locations in Berlin), and pr76 (76 cities around the world). These data were sourced from a repository made public by the University of Heidelberg, found [here](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp/).
 
 The reproduce the analysis, run the scripts from the command line and redirect output to a file: 
 
